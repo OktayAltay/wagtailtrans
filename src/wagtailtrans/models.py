@@ -50,7 +50,13 @@ class WagtailAdminLanguageForm(WagtailAdminModelForm):
         sorted_choices = sorted(self.fields['code'].choices, key=itemgetter(1))
         self.fields['code'].choices = sorted_choices
 
-        if get_wagtailtrans_setting('LANGUAGES_PER_SITE'):
+        # Remove is_default when a default is set.
+        default_language = Language.objects.default()
+        if (
+            default_language and
+            get_wagtailtrans_setting('LANGUAGES_PER_SITE') or
+            self.initial.get('is_default', False)
+        ):
             del self.fields['is_default']
 
     def clean_is_default(self):
