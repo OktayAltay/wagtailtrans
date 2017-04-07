@@ -4,6 +4,7 @@ from operator import itemgetter
 
 from django import forms
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 from django.http import Http404
@@ -50,10 +51,7 @@ class WagtailAdminLanguageForm(WagtailAdminModelForm):
         sorted_choices = sorted(self.fields['code'].choices, key=itemgetter(1))
         self.fields['code'].choices = sorted_choices
 
-        # Remove is_default when a default is set.
-        default_language = Language.objects.default()
         if (
-            default_language and
             get_wagtailtrans_setting('LANGUAGES_PER_SITE') or
             self.initial.get('is_default', False)
         ):
@@ -61,7 +59,13 @@ class WagtailAdminLanguageForm(WagtailAdminModelForm):
 
     def clean_is_default(self):
         is_default = self.cleaned_data['is_default']
-        if (
+
+        if self.initial.get('is_default') and not is_default:
+            raise ValidationError(_(
+                "You can not remove is_default form a language. To change the "
+                "default language, select is_default on a different language"))
+
+        elif (
             not self.initial.get('is_default') == is_default and
             is_default and
             not get_wagtailtrans_setting('LANGUAGES_PER_SITE')
